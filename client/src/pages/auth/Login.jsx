@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
+import { apiRequest } from "../../lib/api";
 
 function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const passwordInputRef = useRef(null);
 
   const [showPassword, setShowPassword] = useState(false);
 
@@ -15,65 +17,45 @@ function Login() {
   });
 
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     if (!form.identifier || !form.password) {
       setError("Please enter your login details.");
       return;
     }
 
-    /*
-      Temporary demo authentication.
-
-      Real authentication will be connected
-      to Express + MongoDB shortly.
-    */
-
-    let role = "student";
-
-    if (form.identifier.toLowerCase().includes("warden")) {
-      role = "warden";
+    setIsSubmitting(true);
+    try {
+      const result = await apiRequest("/auth/login", {
+        method: "POST",
+        auth: false,
+        body: { email: form.identifier.trim(), password: form.password },
+      });
+      const user = {
+        ...result.user,
+        name: result.user.fullName || result.user.name,
+        token: result.token,
+      };
+      await login(user);
+      navigate(`/${user.role}`, { replace: true });
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (form.identifier.toLowerCase().includes("owner")) {
-      role = "owner";
-    }
-
-    const user = {
-      id: "demo-user",
-      name:
-        role === "student"
-          ? "Anish Rai"
-          : role === "warden"
-          ? "Demo Warden"
-          : "Demo Owner",
-      role,
-      email: form.identifier,
-    };
-
-    login(user);
-
-    navigate(`/${role}`);
   };
 
-  const demoLogin = (role) => {
-    const user = {
-      id: `demo-${role}`,
-      name:
-        role === "student"
-          ? "Anish Rai"
-          : role === "warden"
-          ? "Demo Warden"
-          : "Demo Owner",
-      role,
-      email: `${role}@demo.com`,
-    };
-
-    login(user);
-
-    navigate(`/${role}`);
+  const selectDemoAccount = (role) => {
+    setForm({
+      identifier: `${role}.demo@hostelhive.test`,
+      password: "",
+    });
+    setError("");
+    requestAnimationFrame(() => passwordInputRef.current?.focus());
   };
 
   return (
@@ -89,7 +71,7 @@ function Login() {
         <div className="relative z-10 max-w-lg p-12 text-[#FFF9EF]">
 
           <p className="text-sm font-bold uppercase tracking-[0.3em] text-[#C69C5A]">
-            Hostel Management
+            Hostel Hive
           </p>
 
           <h1 className="mt-5 text-5xl font-black leading-tight">
@@ -130,6 +112,11 @@ function Login() {
 
         <div className="w-full max-w-md">
 
+          <Link to="/" className="mb-7 inline-flex items-center gap-3 rounded-xl text-sm font-bold text-[#5A1725]">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#5A1725] text-xs font-black text-[#FFF9EF]">HH</span>
+            Hostel Hive
+          </Link>
+
           <div className="mb-8">
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#C69C5A]">
               Welcome Back
@@ -161,7 +148,7 @@ function Login() {
             {/* Identifier */}
             <label className="block">
               <span className="text-sm font-semibold text-[#241719]">
-                Email or Student ID
+                Email
               </span>
 
               <span className="mt-1 block text-xs text-[#604B4F]">
@@ -184,6 +171,8 @@ function Login() {
                   }
                   className="w-full rounded-2xl border border-[#E3CFAD] bg-[#F8EEDC] py-3.5 pl-12 pr-4 outline-none transition focus:border-[#5A1725] focus:ring-4 focus:ring-[#5A1725]/10"
                   placeholder="you@example.com"
+                  type="email"
+                  required
                 />
               </div>
             </label>
@@ -206,6 +195,7 @@ function Login() {
                 />
 
                 <input
+                  ref={passwordInputRef}
                   type={showPassword ? "text" : "password"}
                   value={form.password}
                   onChange={(e) =>
@@ -251,15 +241,18 @@ function Login() {
               type="submit"
               className="mt-6 w-full rounded-2xl bg-[#5A1725] py-3.5 font-bold text-[#FFF9EF] shadow-[0_12px_30px_rgba(90,23,37,0.25)] transition hover:-translate-y-1 hover:bg-[#7A2638]"
             >
-              Sign In
+              {isSubmitting ? "Signing In..." : "Sign In"}
             </button>
 
             {/* Development demo accounts */}
             {import.meta.env.DEV && (
               <div className="mt-6 border-t border-[#E3CFAD] pt-6">
 
-                <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wider text-[#604B4F]">
-                  Development Demo
+                <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wider text-[#604B4F]">
+                  Development Accounts
+                </p>
+                <p className="mb-3 text-center text-xs text-[#604B4F]">
+                  Choose an account, enter its password, then sign in to use saved features.
                 </p>
 
                 <div className="grid grid-cols-3 gap-2">
@@ -268,7 +261,7 @@ function Login() {
                     <button
                       key={role}
                       type="button"
-                      onClick={() => demoLogin(role)}
+                      onClick={() => selectDemoAccount(role)}
                       className="rounded-xl border border-[#E3CFAD] bg-[#F8EEDC] px-2 py-2 text-xs font-semibold capitalize text-[#5A1725] transition hover:-translate-y-0.5 hover:bg-[#E3CFAD]"
                     >
                       {role}

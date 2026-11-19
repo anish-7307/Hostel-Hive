@@ -50,6 +50,15 @@ const userSchema = new mongoose.Schema(
     course: String,
     year: String,
     college: String,
+    roomNumber: {
+      type: String,
+      trim: true,
+      index: true,
+    },
+    block: {
+      type: String,
+      trim: true,
+    },
 
     isVerified: {
       type: Boolean,

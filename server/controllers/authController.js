@@ -25,81 +25,6 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // Login user
-    const loginUser = async (req, res) => {
-      try {
-        const { email, password } = req.body;
-
-        // Check required fields
-        if (!email || !password) {
-          return res.status(400).json({
-            success: false,
-            message: "Please enter email and password",
-          });
-        }
-
-        // Find user by email
-        const user = await User.findOne({
-          email: email.toLowerCase(),
-        });
-
-        if (!user) {
-          return res.status(401).json({
-            success: false,
-            message: "Invalid email or password",
-          });
-        }
-
-        // Check if account is active
-        if (!user.isActive) {
-          return res.status(403).json({
-            success: false,
-            message: "Your account is inactive",
-          });
-        }
-
-        // Compare password
-        const isMatch = await bcrypt.compare(password, user.password);
-
-        if (!isMatch) {
-          return res.status(401).json({
-            success: false,
-            message: "Invalid email or password",
-          });
-        }
-
-        // Generate JWT token
-        const token = jwt.sign(
-          {
-            id: user._id,
-            role: user.role,
-          },
-          process.env.JWT_SECRET,
-          { expiresIn: "1d" },
-        );
-
-        // Send response
-        res.status(200).json({
-          success: true,
-          message: "Login successful",
-          token,
-          user: {
-            id: user._id,
-            fullName: user.fullName,
-            email: user.email,
-            role: user.role,
-          },
-        });
-      } catch (error) {
-        console.log("Login error:", error.message);
-
-        res.status(500).json({
-          success: false,
-          message: "Something went wrong during login",
-        });
-      }
-    };
-
     // Check password length
     if (password.length < 6) {
       return res.status(400).json({
@@ -157,4 +82,87 @@ const registerUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser,loginUser };
+// Login user
+const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Check required fields
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter email and password",
+      });
+    }
+
+    // Find user by email
+    const user = await User.findOne({
+      email: email.toLowerCase(),
+    });
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    // Check if account is active
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is inactive",
+      });
+    }
+
+    // Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      {
+        id: user._id,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    // Send response
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.log("Login error:", error.message);
+
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong during login",
+    });
+  }
+};
+
+// Get logged in user
+const getMe = async (req, res) => {
+  res.status(200).json({
+    success: true,
+    user: req.user,
+  });
+};
+
+module.exports = { registerUser, loginUser, getMe };

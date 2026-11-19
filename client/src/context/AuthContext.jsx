@@ -1,24 +1,21 @@
-import { createContext, useContext, useEffect, useState } from "react";
-
-const AuthContext = createContext(null);
+import { useState } from "react";
+import { AuthContext } from "./authStore";
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
+  const [user, setUser] = useState(() => {
     const savedSession = sessionStorage.getItem("hostel_session");
 
     if (savedSession) {
       try {
-        setUser(JSON.parse(savedSession));
+        return JSON.parse(savedSession);
       } catch {
         sessionStorage.removeItem("hostel_session");
       }
     }
 
-    setLoading(false);
-  }, []);
+    return null;
+  });
+  const [loading] = useState(false);
 
   const login = async (userData) => {
     setUser(userData);
@@ -34,6 +31,14 @@ export function AuthProvider({ children }) {
     sessionStorage.removeItem("hostel_session");
   };
 
+  const updateUser = (updates) => {
+    setUser((currentUser) => {
+      const nextUser = { ...currentUser, ...updates };
+      sessionStorage.setItem("hostel_session", JSON.stringify(nextUser));
+      return nextUser;
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -41,22 +46,11 @@ export function AuthProvider({ children }) {
         loading,
         login,
         logout,
+        updateUser,
         isAuthenticated: Boolean(user),
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error(
-      "useAuth must be used inside AuthProvider"
-    );
-  }
-
-  return context;
 }

@@ -9,8 +9,8 @@ import {
   MessageSquare,
   X,
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
 
 const menuItems = [
   {
@@ -57,6 +57,13 @@ const menuItems = [
 
 function Sidebar({ open, onClose }) {
   const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    onClose();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <>
@@ -84,12 +91,12 @@ function Sidebar({ open, onClose }) {
         <div className="flex h-[78px] items-center justify-between border-b border-[#E3CFAD] px-5">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#5A1725] text-sm font-black text-[#FFF9EF] shadow-[0_8px_20px_rgba(90,23,37,0.25)]">
-              HM
+              HH
             </div>
 
             <div>
               <p className="font-bold text-[#241719]">
-                Hostel Management
+                Hostel Hive
               </p>
 
               <p className="text-xs text-[#604B4F]">
@@ -156,7 +163,7 @@ function Sidebar({ open, onClose }) {
           </div>
 
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-[#9B2C2C] transition hover:bg-[#FBEAEA]"
           >
             <LogOut size={19} />
